@@ -7,8 +7,7 @@ import platform
 import os
 from datetime import datetime
 
-bot = telebot.TeleBot('')
-now = datetime.now()
+bot = telebot.TeleBot('304555842:AAF4GZhF-wrh8gWgQ-zzHCI9z3XHA3VtrNE')
 logo = '''
 	 ____________________________________
 	|   ____  _____  _             _     |
@@ -21,36 +20,51 @@ logo = '''
 barra = '------------------------------------------------------'
 
 #Verificar sistema operacional e limpar tela de acordo
-so = platform.system()
-if so == 'Windows':
-	os.system("cls")
-else:
-	os.system("clear")
-
-print(logo)
-print(barra)
-arquivo = open('CTlog_' + str(now.day) + '-' + str(now.month) + '-' + str(now.year) + ' ' + str(now.hour) + '.' + str(now.minute) + '.' + str(now.second) + '.txt', 'w')
+os.system('cls' if os.name == 'nt' else 'clear')
+nomeArquivo = 'CT_LOG-{data}.txt'.format(data=str(datetime.today())[:19])
+nomeArquivo = nomeArquivo.replace(":",".")
+arquivo = open(nomeArquivo, 'a')
 arquivo.write(logo+'\n')
 arquivo.write(barra+'\n')
 
+#Gerar LOG
+def log_msg(mensagem):
+    return('''
+[Data do Recebimento]: {data}
+[Texto]: {comando}
+[Tipo de Chat]: {origem}
+[Titulo do Chat]: {nomechat}
+[ID do Chat]: {chatid}
+[Nome do Usuário]: {nome_usuario}
+[Username do Usuário]: @{username}
+[ID do Usuário]: {id_user}
+-------------------------------------------'''.format(data=str(datetime.today()), comando=mensagem.text, origem=mensagem.chat.type, nomechat=mensagem.chat.title, chatid=mensagem.chat.id,
+                               nome_usuario=mensagem.from_user.first_name, username=mensagem.from_user.username, id_user=mensagem.from_user.id))
+
 # Verificar se usuário é admin
-def verificarAdmin(id):
-	if id == 169522318 or id == 208642943:
-		return True
-	else:
-		return False
+def verificarAdmin(id_):
+	id_admins = [admin.user.id for admin in bot.get_chat_administrators(id_.chat.id)]
+	if id_.from_user.id not in id_admins: return False
+	else: return True
 
 # Mostrar como contribuir
 @bot.message_handler(commands=['contribuir'])
 def contribuir(m):
-	bot.reply_to(m,'''Para contribuir com o BOT acesse:
+	gerarlog(m)
+	bot.reply_to(m,'''
+Contribuidores:
+Diego Bernardes(@EXPL01T3R0)
+ReiGelado(@ReiGel_ado)
+
+		Para contribuir com o BOT acesse:
 https://github.com/DavydMaker/caveiratech_bot''')
 
 # Mostrar comandos
 @bot.message_handler(commands=['help'])
 def help(m):
+		gerarlog(m)
 #	if verificarAdmin(m.from_user.id) == True:		
-		bot.send_message(m.chat.id,'''
+		bot.reply_to(m,'''
 Lista de Comandos:
 
 /help - Listar comandos e suas descrições
@@ -58,7 +72,7 @@ Lista de Comandos:
 /admins - Listar administradores
 /desenvolvedores - Listar desenvolvedores do BOT
 /geoip <host> - Obter informações de geolocalização do IP informado
-/contribuir - Mostra como contribuir com o BOT''')
+/contribuir - Listar contribuidores do BOT e como contribuir''')
 #	else:
 #		bot.send_message(m.chat.id,'''
 #Lista de Comandos:
@@ -71,17 +85,25 @@ Lista de Comandos:
 # Mostrar lista de administradores do grupo
 @bot.message_handler(commands=['admins'])
 def admins(m):
-	bot.send_message(m.chat.id, '''
+	if m.chat.type != 'private':
+		gerarlog(m)
+		admins_username = [admin.user.username for admin in bot.get_chat_administrators(m.chat.id)]
+		bot.reply_to(m, '''
 Lista de Administradores:
 
-@AlobusCT
-@EXPL01T3R0
-@ReiGel_ado''')
+@{0}
+@{1}
+@{2}
+@{3}
+'''.format(*admins_username))
+	else:
+		bot.reply_to(m, 'Comando desativado para chat privado.')
 
 # Mostrar lista de desenvolvedores do BOT
 @bot.message_handler(commands=['desenvolvedores'])
 def desenvolvedores(m):
-	bot.send_message(m.chat.id, '''
+	gerarlog(m)
+	bot.reply_to(m, '''
 Lista de Desenvolvedores:
 
 @DavydMaker
@@ -114,27 +136,27 @@ Lat./Long.: '''+str(latitude)+', '+str(longitude))
 
 # Mostrar GeoIP
 @bot.message_handler(commands=['geoip'])
-def comando_acoes(mensagem):
-#	if mensagem.chat.type != "private":
-#		if verificarAdmin(mensagem.from_user.id) == True:
-			print("Usuário: @"+mensagem.from_user.username+"("+str(mensagem.from_user.id)+") - Comando: "+mensagem.text+" - Chat"+verificarChat(mensagem.chat.title)+"("+str(mensagem.chat.id)+")")
-			arquivo.write("Usuário: @"+mensagem.from_user.username+"("+str(mensagem.from_user.id)+") - Comando: "+mensagem.text+" - Chat"+verificarChat(mensagem.chat.title)+"("+str(mensagem.chat.id)+")\n")
-			comando = mensagem.text.split(' ')
+def comando_acoes(m):
+#	if m.chat.type != "private":
+#		if verificarAdmin(m) == True:
+			gerarlog(m)
+			comando = m.text.split(' ')
 			try:
-				bot.reply_to(mensagem, geoip(comando[1]))
+				bot.reply_to(m, geoip(comando[1]))
 			except IndexError:
-				bot.reply_to(mensagem,'HOST não informado.\n Exemplo: /geoip caveiratech.com')
+				bot.reply_to(m,'HOST não informado.\n Exemplo: /geoip caveiratech.com')
 			except Exception as e:
-				bot.reply_to(mensagem,'Nenhum dado da HOST foi encontrado.')
-		#else:
-		#	bot.reply_to(mensagem,'Permissão insuficiente para executar comando.')
+				bot.reply_to(m,'Nenhum dado da HOST foi encontrado.')
+#		else:
+#			bot.reply_to(m,'Permissão insuficiente para executar comando.')
 #	else:
-#		bot.reply_to(mensagem,'Função apenas para grupos.') #Para que não fiquem zoando o bot em pvd, dps modifico
+#		bot.reply_to(m,'Função apenas para grupos.') #Para que não fiquem zoando o bot em pvd, dps modifico
 
 # Mostrar regras
 @bot.message_handler(commands=['regras'])
 def regras(m):
-	bot.send_message(m.chat.id,'''
+	gerarlog(m)
+	bot.reply_to(m,'''
 1. Política anti-harassment:
 Os canais signatários deste guia são locais livres de assédio, opressão e preconceitos.
 Não serão tolerados comentários ofensivos sobre gênero, orientação sexual, deficiências, aparência física, raça ou credo;Os membros do grupo não estão no grupo para paquerar, não insista, existem outras redes para isto;O uso de conteúdo adulto em forma de vídeos, gif's, imagens ou áudio não será tolerado;Termos inadequados, intimidação, perseguição, comportamento rude, ofensivo ou desrespeitoso não serão tolerados;Piadas sexistas, machistas, misóginas ou discriminatórias, contra miniorias, pessoas ou grupos não serão toleradas;Bullying não será tolerado.
@@ -181,8 +203,7 @@ def on_user_joins(m):
 # Gerar log de mensagens enviadas para conversa onde o bot esteja
 @bot.message_handler(func=lambda m: True, content_types=['text'])
 def gerarlog(m):
-	print("Usuário: @"+m.from_user.username+"("+str(m.from_user.id)+") - Mensagem: \""+m.text+"\" - Chat"+verificarChat(m.chat.title)+"("+str(m.chat.id)+")")
-	arquivo.write("Usuário: @"+m.from_user.username+"("+str(m.from_user.id)+") - Mensagem: \""+m.text+"\" - Chat"+verificarChat(m.chat.title)+"("+str(m.chat.id)+")\n")
+	arquivo.write(log_msg(m))
 
 # Verificar se o chat é privado ou não
 def verificarChat(m):
