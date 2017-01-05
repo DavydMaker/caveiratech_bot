@@ -5,9 +5,10 @@ import urllib.request as url
 import json
 import platform
 import os
+from datetime import datetime
 
 bot = telebot.TeleBot('')
-
+now = datetime.now()
 logo = '''
 	 ____________________________________
 	|   ____  _____  _             _     |
@@ -28,6 +29,9 @@ else:
 
 print(logo)
 print(barra)
+arquivo = open('CTlog_' + str(now.day) + '-' + str(now.month) + '-' + str(now.year) + ' ' + str(now.hour) + '.' + str(now.minute) + '.' + str(now.second) + '.txt', 'w')
+arquivo.write(logo+'\n')
+arquivo.write(barra+'\n')
 
 # Verificar se usuário é admin
 def verificarAdmin(id):
@@ -35,6 +39,12 @@ def verificarAdmin(id):
 		return True
 	else:
 		return False
+
+# Mostrar como contribuir
+@bot.message_handler(commands=['contribuir'])
+def contribuir(m):
+	bot.reply_to(m,'''Para contribuir com o BOT acesse:
+https://github.com/DavydMaker/caveiratech_bot''')
 
 # Mostrar comandos
 @bot.message_handler(commands=['help'])
@@ -47,7 +57,8 @@ Lista de Comandos:
 /regras - Listar regras
 /admins - Listar administradores
 /desenvolvedores - Listar desenvolvedores do BOT
-/geoip <host> - Obter informações de geolocalização do IP informado''')
+/geoip <host> - Obter informações de geolocalização do IP informado
+/contribuir - Mostra como contribuir com o BOT''')
 #	else:
 #		bot.send_message(m.chat.id,'''
 #Lista de Comandos:
@@ -81,28 +92,33 @@ def geoip(ip):
 	conexao = url.urlopen('http://freegeoip.net/json/'+ip)
 	data = conexao.read()
 	json_data = json.loads(data)
-	ip = json_data['ip']
-	nomePais = json_data['country_name']
-	nomeEstado = json_data['region_name']
-	cidade = json_data['city']
-	cep = json_data['zip_code']
-	fusoHorario = json_data['time_zone']
-	latitude = json_data['latitude']
-	longitude = json_data['longitude']
-	return('''
-IP : '''+ip+'''
+	if ':' not in json_data['ip']:
+		ipJ = json_data['ip']
+		nomePais = json_data['country_name']
+		nomeEstado = json_data['region_name']
+		cidade = json_data['city']
+		cep = json_data['zip_code']
+		fusoHorario = json_data['time_zone']
+		latitude = json_data['latitude']
+		longitude = json_data['longitude']
+		return('''
+IP : '''+ipJ+'''
 País: '''+nomePais+'''
 Estado: '''+nomeEstado+'''
 Cidade: '''+cidade+'''
 CEP: '''+cep+'''
 Fuso Horário: '''+fusoHorario+'''
 Lat./Long.: '''+str(latitude)+', '+str(longitude))
+	else:
+		geoip(ip)
 
 # Mostrar GeoIP
 @bot.message_handler(commands=['geoip'])
 def comando_acoes(mensagem):
-	if mensagem.chat.type != "private":
+#	if mensagem.chat.type != "private":
 #		if verificarAdmin(mensagem.from_user.id) == True:
+			print("Usuário: @"+mensagem.from_user.username+"("+str(mensagem.from_user.id)+") - Comando: "+mensagem.text+" - Chat"+verificarChat(mensagem.chat.title)+"("+str(mensagem.chat.id)+")")
+			arquivo.write("Usuário: @"+mensagem.from_user.username+"("+str(mensagem.from_user.id)+") - Comando: "+mensagem.text+" - Chat"+verificarChat(mensagem.chat.title)+"("+str(mensagem.chat.id)+")\n")
 			comando = mensagem.text.split(' ')
 			try:
 				bot.reply_to(mensagem, geoip(comando[1]))
@@ -112,8 +128,8 @@ def comando_acoes(mensagem):
 				bot.reply_to(mensagem,'Nenhum dado da HOST foi encontrado.')
 		#else:
 		#	bot.reply_to(mensagem,'Permissão insuficiente para executar comando.')
-	else:
-		bot.reply_to(mensagem,'Função apenas para grupos.') #Para que não fiquem zoando o bot em pvd, dps modifico
+#	else:
+#		bot.reply_to(mensagem,'Função apenas para grupos.') #Para que não fiquem zoando o bot em pvd, dps modifico
 
 # Mostrar regras
 @bot.message_handler(commands=['regras'])
@@ -158,10 +174,24 @@ Não divulgue produtos, serviços, cursos ou quaisquer materiais sem consultar o
 # Quando entra novo membro no grupo
 @bot.message_handler(func=lambda m: True, content_types=['new_chat_member'])
 def on_user_joins(m):
-    bot.send_message(m.chat.id, "Olá " + m.new_chat_member.first_name + ", bem vindo(a) ao grupo. Leia o post fixado e respeite os membros.")
+	print("Usuário \"@"+m.new_chat_member.username+"("+str(m.new_chat_member.id)+")\" entrou no grupo \""+m.chat.title+"("+str(m.chat.id)+")\".")
+	arquivo.write("Usuário \"@"+m.new_chat_member.username+"("+str(m.new_chat_member.id)+")\" entrou no grupo \""+m.chat.title+"("+str(m.chat.id)+")\".\n")
+	bot.send_message(m.chat.id, "Olá " + m.new_chat_member.first_name + ", bem vindo(a) ao grupo. Leia o post fixado e respeite os membros.")
 
 # Gerar log de mensagens enviadas para conversa onde o bot esteja
 @bot.message_handler(func=lambda m: True, content_types=['text'])
 def gerarlog(m):
-    print("Usuário: @"+m.from_user.username+" - Mensagem:\""+m.text+"\" - Chat ID: " + str(m.chat.id))
+	print("Usuário: @"+m.from_user.username+"("+str(m.from_user.id)+") - Mensagem: \""+m.text+"\" - Chat"+verificarChat(m.chat.title)+"("+str(m.chat.id)+")")
+	arquivo.write("Usuário: @"+m.from_user.username+"("+str(m.from_user.id)+") - Mensagem: \""+m.text+"\" - Chat"+verificarChat(m.chat.title)+"("+str(m.chat.id)+")\n")
+
+# Verificar se o chat é privado ou não
+def verificarChat(m):
+	if m == None:
+		return(" Privado")
+	else:
+		return(": "+m)
+
 bot.polling()
+print(barra)
+arquivo.write(barra)
+arquivo.close()
