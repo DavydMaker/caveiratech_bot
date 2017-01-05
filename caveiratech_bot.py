@@ -21,24 +21,32 @@ logo = '''
 barra = '------------------------------------------------------'
 
 #Verificar sistema operacional e limpar tela de acordo
-so = platform.system()
-if so == 'Windows':
-	os.system("cls")
-else:
-	os.system("clear")
+os.system('cls' if os.name == 'nt' else 'clear')
 
-print(logo)
-print(barra)
-arquivo = open('CTlog_' + str(now.day) + '-' + str(now.month) + '-' + str(now.year) + ' ' + str(now.hour) + '.' + str(now.minute) + '.' + str(now.second) + '.txt', 'w')
+arquivo = open('CT_LOG-{data}'.format(data=str(datetime.today())[:19]), 'a')
 arquivo.write(logo+'\n')
 arquivo.write(barra+'\n')
 
+#Gerar LOG
+
+def log_msg(mensagem):
+    return('''
+
+LOG: comando recebido {data}
+Comando: {comando}
+Origem: {origem}
+Titulo do chat: {nomechat}
+ID do chat: {chatid}
+Nome do remetente: {nome_usuario}
+Username: {username}
+ID do usuário: {id_user}
+-------------------------------------------'''.format(data=str(datetime.today()), comando=mensagem.text, origem=mensagem.chat.type, nomechat=mensagem.chat.title, chatid=mensagem.chat.id,
+                               nome_usuario=mensagem.from_user.first_name, username=mensagem.from_user.username, id_user=mensagem.from_user.id))
 # Verificar se usuário é admin
-def verificarAdmin(id):
-	if id == 169522318 or id == 208642943:
-		return True
-	else:
-		return False
+def verificarAdmin(id_):
+	id_admins = [admin.user.id for admin in bot.get_chat_administrators(-1001086526845)]
+	if id_ not in id_admins: return False
+	else: re
 
 # Mostrar como contribuir
 @bot.message_handler(commands=['contribuir'])
@@ -71,13 +79,14 @@ Lista de Comandos:
 # Mostrar lista de administradores do grupo
 @bot.message_handler(commands=['admins'])
 def admins(m):
+	admins_username = [admin.user.username for admin in bot.get_chat_administrators(-1001086526845)]
 	bot.send_message(m.chat.id, '''
 Lista de Administradores:
-
-@AlobusCT
-@EXPL01T3R0
-@ReiGel_ado''')
-
+@{0}
+@{1}
+@{2}
+@{3}
+'''.format(*admins_username)
 # Mostrar lista de desenvolvedores do BOT
 @bot.message_handler(commands=['desenvolvedores'])
 def desenvolvedores(m):
@@ -181,9 +190,9 @@ def on_user_joins(m):
 # Gerar log de mensagens enviadas para conversa onde o bot esteja
 @bot.message_handler(func=lambda m: True, content_types=['text'])
 def gerarlog(m):
-	print("Usuário: @"+m.from_user.username+"("+str(m.from_user.id)+") - Mensagem: \""+m.text+"\" - Chat"+verificarChat(m.chat.title)+"("+str(m.chat.id)+")")
-	arquivo.write("Usuário: @"+m.from_user.username+"("+str(m.from_user.id)+") - Mensagem: \""+m.text+"\" - Chat"+verificarChat(m.chat.title)+"("+str(m.chat.id)+")\n")
-
+	arquivo.write(log_msg(m))
+			 
+			 
 # Verificar se o chat é privado ou não
 def verificarChat(m):
 	if m == None:
