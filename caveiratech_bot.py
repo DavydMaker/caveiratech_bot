@@ -115,16 +115,16 @@ def geoip(ip):
 	conexao = url.urlopen('http://freegeoip.net/json/'+ip)
 	data = conexao.read()
 	json_data = json.loads(data)
-	print(json_data)
-	ipJ = json_data['ip']
-	nomePais = json_data['country_name']
-	nomeEstado = json_data['region_name']
-	cidade = json_data['city']
-	cep = json_data['zip_code']
-	fusoHorario = json_data['time_zone']
-	latitude = json_data['latitude']
-	longitude = json_data['longitude']
-	return('''
+	if ':' not in json_data['ip']:
+		ipJ = json_data['ip']
+		nomePais = json_data['country_name']
+		nomeEstado = json_data['region_name']
+		cidade = json_data['city']
+		cep = json_data['zip_code']
+		fusoHorario = json_data['time_zone']
+		latitude = json_data['latitude']
+		longitude = json_data['longitude']
+		return('''
 IP : '''+ipJ+'''
 País: '''+nomePais+'''
 Estado: '''+nomeEstado+'''
@@ -132,6 +132,8 @@ Cidade: '''+cidade+'''
 CEP: '''+cep+'''
 Fuso Horário: '''+fusoHorario+'''
 Lat./Long.: '''+str(latitude)+', '+str(longitude))
+	else:
+		geoip(ip)
 
 # Mostrar GeoIP
 @bot.message_handler(commands=['geoip'])
